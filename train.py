@@ -1,8 +1,6 @@
 import datetime
 import logging
 import os
-import pdb
-import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -16,12 +14,13 @@ from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
                    MTSIKvretConfig, TwoSepTensorBuilder)
 
 _N_EPOCHS = 20
-_OPTIMIZER_STEP_RATE = 16 # how many samples has to be computed before the optimizer.step()
+# how many samples has to be computed before the optimizer.step()
+_OPTIMIZER_STEP_RATE = 16
 _DEBUG = False
 
 
 def get_eos(turns, win_size, windows_per_dialogue):
-    
+
     res = torch.zeros((len(turns), windows_per_dialogue), dtype=torch.long)
     user_count = 0
     for idx, curr_dial in enumerate(turns):
@@ -40,7 +39,7 @@ def remove_dataparallel(load_checkpoint_path):
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
+        name = k[7:]  # remove `module.`
         new_state_dict[name] = v
     # load params
     return new_state_dict
@@ -63,34 +62,35 @@ def train(load_checkpoint_path=None):
     validation_set.remove_subsequent_actor_utterances()
 
     # Bert adapter for dataset
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case = False)
+    tokenizer = BertTokenizer.from_pretrained(
+        '/data/models/bert-base-cased', do_lower_case=False)
     # pass max_len + 1 (to pad of 1 also the longest sentence, a sort of EOS) + 1 (random last sentence from other)
-    badapter_train = MTSIAdapterDataset(training_set, tokenizer,\
-                                    KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,\
-                                    KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
+    badapter_train = MTSIAdapterDataset(training_set, tokenizer,
+                                        KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
+                                        KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
     # for validation keep using the train max tokens for model compatibility
-    badapter_val = MTSIAdapterDataset(validation_set, tokenizer,\
-                                    KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,\
-                                    KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_VAL_DIALOGUE+2)
+    badapter_val = MTSIAdapterDataset(validation_set, tokenizer,
+                                      KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
+                                      KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_VAL_DIALOGUE+2)
 
     # Parameters
     params = {'batch_size': MTSIKvretConfig._BATCH_SIZE,
-            'shuffle': True,
-            'num_workers': 0}
+              'shuffle': True,
+              'num_workers': 0}
 
     training_generator = DataLoader(badapter_train, **params)
     validation_generator = DataLoader(badapter_val, **params)
 
     # Model preparation
-    model = MTSIBert(num_layers_encoder = MTSIKvretConfig._ENCODER_LAYERS_NUM,
-                    num_layers_eos = MTSIKvretConfig._EOS_LAYERS_NUM,
-                    n_intents = MTSIKvretConfig._N_INTENTS,
-                    batch_size = MTSIKvretConfig._BATCH_SIZE,
-                    pretrained = 'bert-base-cased',
-                    seed = MTSIKvretConfig._SEED,
-                    window_size = MTSIKvretConfig._WINDOW_SIZE)
+    model = MTSIBert(num_layers_encoder=MTSIKvretConfig._ENCODER_LAYERS_NUM,
+                     num_layers_eos=MTSIKvretConfig._EOS_LAYERS_NUM,
+                     n_intents=MTSIKvretConfig._N_INTENTS,
+                     batch_size=MTSIKvretConfig._BATCH_SIZE,
+                     pretrained='/data/models/bert-base-cased',
+                     seed=MTSIKvretConfig._SEED,
+                     window_size=MTSIKvretConfig._WINDOW_SIZE)
 
-    if load_checkpoint_path != None:
+    if load_checkpoint_path is not None:
         print('model loaded from: '+load_checkpoint_path)
         new_state_dict = remove_dataparallel(load_checkpoint_path)
         model.load_state_dict(new_state_dict)
@@ -104,32 +104,44 @@ def train(load_checkpoint_path=None):
     loss_eos_weights = torch.tensor([1, 2.6525])
     loss_action_weights = torch.tensor([1, 4.8716])
     loss_eos = torch.nn.CrossEntropyLoss(weight=loss_eos_weights).to(device)
-    loss_action = torch.nn.CrossEntropyLoss(weight=loss_action_weights).to(device)
+    loss_action = torch.nn.CrossEntropyLoss(
+        weight=loss_action_weights).to(device)
     loss_intent = torch.nn.CrossEntropyLoss().to(device)
 
     optimizer = torch.optim.Adam(
-            [
-                {"params": model._bert.parameters(), "lr": MTSIKvretConfig._BERT_LEARNING_RATE},
-                {"params": model._encoderbiLSTM.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._eos_ffnn.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._intent_ffnn.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._action_ffnn.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._eos_classifier.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._intent_classifier.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-                {"params": model._action_classifier.parameters(), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
-            ],
-            weight_decay=0.1
-        )
+        [
+            {"params": model._bert.parameters(
+            ), "lr": MTSIKvretConfig._BERT_LEARNING_RATE},
+            {"params": model._encoderbiLSTM.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._eos_ffnn.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._intent_ffnn.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._action_ffnn.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._eos_classifier.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._intent_classifier.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+            {"params": model._action_classifier.parameters(
+            ), "lr": MTSIKvretConfig._NN_LEARNING_RATE},
+        ],
+        weight_decay=0.1
+    )
 
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones = [5,10,15,20,30,40,50,75], gamma = 0.5)
-    
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=[5, 10, 15, 20, 30, 40, 50, 75], gamma=0.5)
+
     # creates the directory for the checkpoints
     os.makedirs(os.path.dirname(MTSIKvretConfig._SAVING_PATH), exist_ok=True)
     curr_date = datetime.datetime.now().isoformat()
-    os.makedirs(os.path.dirname(MTSIKvretConfig._SAVING_PATH+curr_date+'/'), exist_ok=True)
+    os.makedirs(os.path.dirname(
+        MTSIKvretConfig._SAVING_PATH+curr_date+'/'), exist_ok=True)
     # creates the directory for the plots figure
-    os.makedirs(os.path.dirname(MTSIKvretConfig._PLOTS_SAVING_PATH), exist_ok=True)
-    
+    os.makedirs(os.path.dirname(
+        MTSIKvretConfig._PLOTS_SAVING_PATH), exist_ok=True)
+
     # initializes the losses lists
     best_loss = 100
     train_global_losses = []
@@ -138,23 +150,26 @@ def train(load_checkpoint_path=None):
     action_val_global_losses = []
     intent_val_global_losses = []
 
+    # ------------- TRAINING -------------
 
-    # ------------- TRAINING ------------- 
+    logging.basicConfig(level=logging.INFO)
 
     tensor_builder = TwoSepTensorBuilder()
-    
+
     for epoch in range(_N_EPOCHS):
+        logging.info(f"Epoch: {epoch+1} / {_N_EPOCHS}")
+
         model.train()
         t_eos_losses = []
         t_intent_losses = []
         t_action_losses = []
 
         for curr_step, (local_batch, local_turns, local_intents, local_actions, dialogue_ids) in enumerate(training_generator):
-            
+
             # 0 = intra dialogue ; 1 = eos
             eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,
-                                        windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 2)
-            
+                                         windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 2)
+
             # local_batch.shape == B x D_LEN x U_LEN
             # local_intents.shape == B
             # local_actions.shape == B
@@ -164,19 +179,18 @@ def train(load_checkpoint_path=None):
             local_actions = local_actions.to(device)
             eos_label = eos_label.to(device)
 
-            eos, intent, action = model(local_batch,
-                                        local_turns, dialogue_ids,
-                                        tensor_builder,
-                                        device)
-            
+            eos, intent, action = model(
+                local_batch, local_turns, dialogue_ids, tensor_builder, device)
+
             # compute loss only on real dialogue (exclude padding)
-            loss1 = loss_eos(eos['logit'][:eos_idx+1], eos_label.squeeze(0)[:eos_idx+1])
+            loss1 = loss_eos(eos['logit'][:eos_idx+1],
+                             eos_label.squeeze(0)[:eos_idx+1])
             loss2 = loss_intent(intent['logit'], local_intents)
             loss3 = loss_action(action['logit'], local_actions)
             tot_loss = (loss1 + loss2 + loss3)/3
             tot_loss.backward()
 
-            #save results
+            # save results
             t_eos_losses.append(loss1.item())
             t_intent_losses.append(loss2.item())
             t_action_losses.append(loss3.item())
@@ -188,23 +202,21 @@ def train(load_checkpoint_path=None):
             if 'cuda' in str(device):
                 torch.cuda.empty_cache()
 
-        #end of epoch
+        # end of epoch
 
-
-        # ------------- VALIDATION ------------- 
-        val_losses = []
+        # ------------- VALIDATION -------------
         with torch.no_grad():
             model.eval()
             v_eos_losses = []
             v_intent_losses = []
             v_action_losses = []
-            
+
             for local_batch, local_turns, local_intents, local_actions, dialogue_ids in validation_generator:
-                
+
                 # 0 = intra dialogue ; 1 = eos
-                eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,\
-                                    windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 1)
-                
+                eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,
+                                             windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 1)
+
                 # local_batch.shape == B x D_LEN x U_LEN
                 # local_intents.shape == B
                 # local_actions.shape == B
@@ -213,20 +225,20 @@ def train(load_checkpoint_path=None):
                 local_intents = local_intents.to(device)
                 local_actions = local_actions.to(device)
                 eos_label = eos_label.to(device)
-                    
 
-                eos, intent, action = model(local_batch,
-                                            local_turns, dialogue_ids,
-                                            tensor_builder,
-                                            device)
+                eos, intent, action = model(
+                    local_batch, local_turns, dialogue_ids,
+                    tensor_builder, device)
+
                 if 'cuda' in str(device):
                     torch.cuda.empty_cache()
-                
-                loss1 = loss_eos(eos['logit'][:eos_idx+1], eos_label.squeeze(0)[:eos_idx+1])
+
+                loss1 = loss_eos(eos['logit'][:eos_idx+1],
+                                 eos_label.squeeze(0)[:eos_idx+1])
                 loss2 = loss_intent(intent['logit'], local_intents)
                 loss3 = loss_action(action['logit'], local_actions)
 
-                #save results
+                # save results
                 v_eos_losses.append(loss1.item())
                 v_intent_losses.append(loss2.item())
                 v_action_losses.append(loss3.item())
@@ -240,9 +252,10 @@ def train(load_checkpoint_path=None):
         v_action_curr_mean = round(np.mean(v_action_losses), 4)
         v_intent_curr_mean = round(np.mean(v_intent_losses), 4)
 
-        train_mean_loss = round(np.mean([t_eos_curr_mean, t_action_curr_mean, t_intent_curr_mean]), 4)
-        val_mean_loss = round(np.mean([v_eos_curr_mean, v_action_curr_mean, v_intent_curr_mean]), 4)
-
+        train_mean_loss = round(
+            np.mean([t_eos_curr_mean, t_action_curr_mean, t_intent_curr_mean]), 4)
+        val_mean_loss = round(
+            np.mean([v_eos_curr_mean, v_action_curr_mean, v_intent_curr_mean]), 4)
 
         # accumulate losses for plotting
         eos_val_global_losses.append(v_eos_curr_mean)
@@ -251,30 +264,29 @@ def train(load_checkpoint_path=None):
         train_global_losses.append(train_mean_loss)
         val_global_losses.append(val_mean_loss)
 
-        
         # check if new best model
         if val_mean_loss < best_loss:
-          #saves the model weights
-          best_loss = val_mean_loss 
-          # save using model.cpu to allow the further loading also on cpu or single-GPU
-          torch.save(model.cpu().state_dict(),\
+            # saves the model weights
+            best_loss = val_mean_loss
+            # save using model.cpu to allow the further loading also on cpu or single-GPU
+            torch.save(model.cpu().state_dict(),
                        MTSIKvretConfig._SAVING_PATH+curr_date+'/state_dict.pt')
         model.to(device)
-        
+
         bert_curr_lr = optimizer.param_groups[0]['lr']
         nn_curr_lr = optimizer.param_groups[1]['lr']
-        log_str = '### EPOCH '+str(epoch+1)+'/'+str(_N_EPOCHS)+' (bert_lr='+str(bert_curr_lr)+', nn_lr='+str(nn_curr_lr)+'):: TRAIN LOSS = '+str(train_mean_loss)+\
-                                                                '[eos = '+str(round(np.mean(t_eos_losses), 4))+'], '+\
-                                                                '[action = '+str(round(np.mean(t_action_losses), 4))+'], '+\
-                                                                '[intent = '+str(round(np.mean(t_intent_losses), 4))+'], '+\
-                                                                '\n\t\t\t || VAL LOSS = '+str(val_mean_loss)+\
-                                                                '[eos = '+str(round(np.mean(v_eos_losses), 4))+'], '+\
-                                                                '[action = '+str(round(np.mean(v_action_losses), 4))+'], '+\
-                                                                '[intent = '+str(round(np.mean(v_intent_losses), 4))+']'
+        log_str = '### EPOCH '+str(epoch+1)+'/'+str(_N_EPOCHS)+' (bert_lr='+str(bert_curr_lr)+', nn_lr='+str(nn_curr_lr)+'):: TRAIN LOSS = '+str(train_mean_loss) +\
+            '[eos = '+str(round(np.mean(t_eos_losses), 4))+'], ' +\
+            '[action = '+str(round(np.mean(t_action_losses), 4))+'], ' +\
+            '[intent = '+str(round(np.mean(t_intent_losses), 4))+'], ' +\
+            '\n\t\t\t || VAL LOSS = '+str(val_mean_loss) +\
+            '[eos = '+str(round(np.mean(v_eos_losses), 4))+'], ' +\
+            '[action = '+str(round(np.mean(v_action_losses), 4))+'], ' +\
+            '[intent = '+str(
+            round(np.mean(v_intent_losses), 4))+']'
         print(log_str)
         # step of scheduler to reduce the lr each milestone
         scheduler.step()
-
 
     # ------------ FINAL PLOTS ------------
 
@@ -282,21 +294,24 @@ def train(load_checkpoint_path=None):
 
     # plot train vs validation
     plt.plot(epoch_list, train_global_losses, color='blue', label='train loss')
-    plt.plot(epoch_list, val_global_losses, color='red', label='validation loss')
-    
+    plt.plot(epoch_list, val_global_losses,
+             color='red', label='validation loss')
+
     plt.title('train vs validation')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend(loc='best')
-    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH+'train_vs_val.png') 
+    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH+'train_vs_val.png')
 
     # clean figure
     plt.clf()
 
     # plot eos vs action vs intent
     plt.plot(epoch_list, eos_val_global_losses, color='red', label='eos loss')
-    plt.plot(epoch_list, action_val_global_losses, color='green', label='action loss')
-    plt.plot(epoch_list, intent_val_global_losses, color='blue', label='intent loss')
+    plt.plot(epoch_list, action_val_global_losses,
+             color='green', label='action loss')
+    plt.plot(epoch_list, intent_val_global_losses,
+             color='blue', label='intent loss')
 
     plt.title('eos vs action vs intent')
     plt.xlabel('Epochs')
@@ -305,13 +320,10 @@ def train(load_checkpoint_path=None):
     plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH+'validation_losses.png')
 
 
-
-
-
-
 if __name__ == '__main__':
     start = time.time()
-    train()
+    with torch.autograd.set_detect_anomaly(True):
+        train()
     end = time.time()
     h_count = (end-start)/60/60
     print('training time: '+str(h_count)+'h')

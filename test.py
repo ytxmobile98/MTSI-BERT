@@ -18,7 +18,7 @@ from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
 
 
 def get_eos(turns, win_size, windows_per_dialogue):
-    
+
     res = torch.zeros((len(turns), windows_per_dialogue), dtype=torch.long)
     user_count = 0
     for idx, curr_dial in enumerate(turns):
@@ -37,7 +37,7 @@ def remove_dataparallel(load_checkpoint_path):
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        name = k[7:] # remove `module.`
+        name = k[7:]  # remove `module.`
         new_state_dict[name] = v
     # load params
     return new_state_dict
@@ -59,9 +59,9 @@ def compute_f1(model, data_generator, device):
         for local_batch, local_turns, local_intents, local_actions, dialogue_ids in data_generator:
 
             # 0 = intra dialogue ; 1 = eos
-            eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,\
-                                windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 2)
-            
+            eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,
+                                         windows_per_dialogue=KvretConfig._KVRET_MAX_USER_SENTENCES_PER_TRAIN_DIALOGUE + 2)
+
             # local_batch.shape == B x D_LEN x U_LEN
             # local_intents.shape == B
             # local_actions.shape == B
@@ -71,12 +71,9 @@ def compute_f1(model, data_generator, device):
             local_actions = local_actions.to(device)
             eos_label = eos_label.to(device)
 
-            eos, intent, action = model(local_batch,
-                                        local_turns, 
-                                        dialogue_ids,
-                                        tensor_builder,
-                                        device)
-            
+            eos, intent, action = model(
+                local_batch, local_turns, dialogue_ids, tensor_builder, device)
+
             # take the predicted label
             eos_predicted = torch.argmax(eos['prediction'], dim=-1)
             action_predicted = torch.argmax(action['prediction'], dim=-1)
@@ -91,24 +88,22 @@ def compute_f1(model, data_generator, device):
 
     print('macro scores:')
     print('--EOS score:')
-    #print(classification_report(true_eos, pred_eos, target_names=['NON-EOS', 'EOS']))
+    # print(classification_report(true_eos, pred_eos, target_names=['NON-EOS', 'EOS']))
     print('precision: '+str(precision_score(true_eos, pred_eos, average='macro')))
     print('recall: '+str(recall_score(true_eos, pred_eos, average='macro')))
     print('f1: '+str(f1_score(true_eos, pred_eos, average='macro')))
-    
+
     print('--Action score:')
-    #print(classification_report(true_action, pred_action, target_names=['FETCH', 'INSERT']))
+    # print(classification_report(true_action, pred_action, target_names=['FETCH', 'INSERT']))
     print('precision: '+str(precision_score(true_action, pred_action, average='macro')))
     print('recall: '+str(recall_score(true_action, pred_action, average='macro')))
     print('f1: '+str(f1_score(true_action, pred_action, average='macro')))
-    
+
     print('--Intent score:')
-    #print(classification_report(true_intent, pred_intent, target_names=['SCHEDULE', 'WEATHER', 'NAVIGATE']))
+    # print(classification_report(true_intent, pred_intent, target_names=['SCHEDULE', 'WEATHER', 'NAVIGATE']))
     print('precision: '+str(precision_score(true_intent, pred_intent, average='micro')))
     print('recall: '+str(recall_score(true_intent, pred_intent, average='micro')))
     print('f1: '+str(f1_score(true_intent, pred_intent, average='micro')))
-    
-
 
 
 def test(load_checkpoint_path):
@@ -122,20 +117,19 @@ def test(load_checkpoint_path):
 
     # Dataset preparation
 
-
     # Bert adapter for dataset
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case = False)
+    tokenizer = BertTokenizer.from_pretrained(
+        '/data/models/bert-base-cased', do_lower_case=False)
     # pass max_len + 1 (to pad of 1 also the longest sentence, a sort of EOS) + 1 (random last sentence from other)
- 
 
     # Model preparation
-    model = MTSIBert(num_layers_encoder = MTSIKvretConfig._ENCODER_LAYERS_NUM,
-                    num_layers_eos = MTSIKvretConfig._EOS_LAYERS_NUM,
-                    n_intents = MTSIKvretConfig._N_INTENTS,
-                    batch_size = MTSIKvretConfig._BATCH_SIZE,
-                    pretrained = 'bert-base-cased',
-                    seed = MTSIKvretConfig._SEED,
-                    window_size = MTSIKvretConfig._WINDOW_SIZE)
+    model = MTSIBert(num_layers_encoder=MTSIKvretConfig._ENCODER_LAYERS_NUM,
+                     num_layers_eos=MTSIKvretConfig._EOS_LAYERS_NUM,
+                     n_intents=MTSIKvretConfig._N_INTENTS,
+                     batch_size=MTSIKvretConfig._BATCH_SIZE,
+                     pretrained='/data/models/bert-base-cased',
+                     seed=MTSIKvretConfig._SEED,
+                     window_size=MTSIKvretConfig._WINDOW_SIZE)
     # work on multiple GPUs when availables
     if torch.cuda.device_count() > 1:
         print('active devices = '+str(torch.cuda.device_count()))
@@ -143,43 +137,37 @@ def test(load_checkpoint_path):
 
     print('model loaded from: '+load_checkpoint_path)
     model.load_state_dict(torch.load(load_checkpoint_path))
-    #new_state_dict = remove_dataparallel(load_checkpoint_path)
-    #model.load_state_dict(new_state_dict)
+    # new_state_dict = remove_dataparallel(load_checkpoint_path)
+    # model.load_state_dict(new_state_dict)
     model.to(device)
     model.eval()
 
-
     # Parameters
     params = {'batch_size': MTSIKvretConfig._BATCH_SIZE,
-            'shuffle': False,
-            'num_workers': 0}
+              'shuffle': False,
+              'num_workers': 0}
 
     # f1-score on test set
     test_set = KvretDataset(KvretConfig._KVRET_TEST_PATH)
     test_set.remove_subsequent_actor_utterances()
-    badapter_test = MTSIAdapterDataset(test_set, 
-                                        tokenizer,
-                                        KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
-                                        KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
+    badapter_test = MTSIAdapterDataset(test_set,
+                                       tokenizer,
+                                       KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
+                                       KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
     test_generator = DataLoader(badapter_test, **params)
     print('### TEST SET:')
     compute_f1(model, test_generator, device)
 
-
     # f1-score on validation set
     val_set = KvretDataset(KvretConfig._KVRET_VAL_PATH)
     val_set.remove_subsequent_actor_utterances()
-    badapter_val = MTSIAdapterDataset(val_set, 
-                                        tokenizer,
-                                        KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
-                                        KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
+    badapter_val = MTSIAdapterDataset(val_set,
+                                      tokenizer,
+                                      KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
+                                      KvretConfig._KVRET_MAX_BERT_SENTENCES_PER_TRAIN_DIALOGUE+2)
     val_generator = DataLoader(badapter_val, **params)
     print('### VALIDATION SET:')
     compute_f1(model, val_generator, device)
-
-
-
-
 
 
 if __name__ == '__main__':

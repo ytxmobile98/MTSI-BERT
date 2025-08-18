@@ -12,19 +12,18 @@ from .MTSIBertInputBuilder import MTSITensorBuilder
 
 class MTSIBert(nn.Module):
     """Implementation of MTSI-Bert"""
-    _BERT_H_DIM = 768 
+    _BERT_H_DIM = 768
     _BERT_CLS_IDX = 101
     _BERT_SEP_IDX = 102
     _BERT_MASK_IDX = 103
 
-
     def __init__(self, num_layers_encoder, num_layers_eos,
-                n_intents, batch_size, pretrained, seed, window_size):
+                 n_intents, batch_size, pretrained, seed, window_size):
 
         super(MTSIBert, self).__init__()
 
         torch.manual_seed(seed)
-        
+
         self._n_intents = n_intents
 
         # sentence encoder parameters
@@ -39,63 +38,68 @@ class MTSIBert(nn.Module):
         self._window_size = window_size
         self._sliding_win = SlidingWindow(window_size)
 
-
     def __build_nn(self, pretrained):
         """
         Architecture stack
         """
-        
+
         self._bert = BertModel.from_pretrained(pretrained)
 
         # sentence encoder for action and intent
         self._encoderbiLSTM = nn.LSTM(self._encoder_input_dim,
-                                    self._encoder_hidden_dim,
-                                    num_layers=self._encoder_num_layers,
-                                    batch_first=True,
-                                    bidirectional=True)
+                                      self._encoder_hidden_dim,
+                                      num_layers=self._encoder_num_layers,
+                                      batch_first=True,
+                                      bidirectional=True)
 
         # EOS FFNN
         self._eos_ffnn = nn.Sequential(nn.Linear(MTSIBert._BERT_H_DIM, MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(MTSIBert._BERT_H_DIM, MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(MTSIBert._BERT_H_DIM, MTSIBert._BERT_H_DIM),
-                                        nn.ReLU())
-        
+                                       nn.ReLU(),
+                                       nn.Linear(MTSIBert._BERT_H_DIM,
+                                                 MTSIBert._BERT_H_DIM),
+                                       nn.ReLU(),
+                                       nn.Linear(MTSIBert._BERT_H_DIM,
+                                                 MTSIBert._BERT_H_DIM),
+                                       nn.ReLU())
+
         # intent FFNN
         self._intent_ffnn = nn.Sequential(nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU())
+                                          nn.ReLU(),
+                                          nn.Linear(
+                                              2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
+                                          nn.ReLU(),
+                                          nn.Linear(
+                                              2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
+                                          nn.ReLU())
 
         # action FFNN
         self._action_ffnn = nn.Sequential(nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU(),
-                                        nn.Linear(2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
-                                        nn.ReLU())
-        
+                                          nn.ReLU(),
+                                          nn.Linear(
+                                              2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
+                                          nn.ReLU(),
+                                          nn.Linear(
+                                              2*MTSIBert._BERT_H_DIM, 2*MTSIBert._BERT_H_DIM),
+                                          nn.ReLU())
+
         # classifiers
-        self._eos_classifier = nn.Linear(in_features = MTSIBert._BERT_H_DIM,
-                                        out_features = 2)
-        self._intent_classifier = nn.Linear(2*MTSIBert._BERT_H_DIM, self._n_intents)
+        self._eos_classifier = nn.Linear(in_features=MTSIBert._BERT_H_DIM,
+                                         out_features=2)
+        self._intent_classifier = nn.Linear(
+            2*MTSIBert._BERT_H_DIM, self._n_intents)
         self._action_classifier = nn.Linear(2*MTSIBert._BERT_H_DIM, 2)
         self._softmax = F.softmax
-    
 
     def init_hiddens(self, num_windows, device):
 
-        encoder_hidden = torch.zeros(self._encoder_num_layers, num_windows, self._encoder_hidden_dim).to(device)
-        eos_hidden = torch.zeros(self._eos_num_layers, num_windows, self._eos_hidden_dim).to(device)
+        encoder_hidden = torch.zeros(
+            self._encoder_num_layers, num_windows, self._encoder_hidden_dim).to(device)
+        eos_hidden = torch.zeros(self._eos_num_layers,
+                                 num_windows, self._eos_hidden_dim).to(device)
         return (encoder_hidden, eos_hidden)
 
-
-    def forward(self, input, turns, dialogue_ids, tensor_builder: MTSITensorBuilder,\
+    def forward(self, input, turns, dialogue_ids, tensor_builder: MTSITensorBuilder,
                 device='cpu'):
-
         """
         It works only with batch size B=1
         Input:
@@ -118,13 +122,14 @@ class MTSIBert(nn.Module):
         windows_l = self._sliding_win.pack_windows(input, turns)
         # returns a padded tensor of dim NUM_WINDOWS x SEQ_LEN
         bert_input = tensor_builder.build_tensor(windows_l, device)
-        
-        attention_mask, segment_mask = tensor_builder.build_attention_and_segment(bert_input)
+
+        attention_mask, segment_mask = tensor_builder.build_attention_and_segment(
+            bert_input)
         attention_mask = attention_mask.to(device)
         segment_mask = segment_mask.to(device)
 
-        ### BERT
-        # only for PC debug: BERT too computationally expensive on cpu and out of mem on GPU    
+        # BERT
+        # only for PC debug: BERT too computationally expensive on cpu and out of mem on GPU
         if str(device) == 'cpu':
             num_win = len(bert_input)
             seq_len = len(bert_input[0])
@@ -132,78 +137,77 @@ class MTSIBert(nn.Module):
             bert_hiddens = torch.randn((num_win, seq_len, 768))
         else:
             # bert_input.shape == [WIN_PER_DIALOGUE x WIN_LENGTH]
-            bert_hiddens, bert_cls_out = self._bert(input_ids = bert_input,
-                                                token_type_ids = segment_mask,
-                                                attention_mask = attention_mask)
+            output = self._bert(
+                input_ids=bert_input,
+                token_type_ids=segment_mask,
+                attention_mask=attention_mask)
+            bert_hiddens, bert_cls_out = \
+                output['last_hidden_state'], output['pooler_output']
 
         # ENCODE the sentence
         # seq_len is a tensor containing the effective length of each sequence in encoder_input
-        encoder_input, seq_len = self.__get_first_utterance(bert_hiddens, attention_mask, device)
-        packed_encoder_input = torch.nn.utils.rnn.pack_padded_sequence(encoder_input, seq_len,
-                                                                        batch_first=True, enforce_sorted=False)
+        encoder_input, seq_len = self.__get_first_utterance(
+            bert_hiddens, attention_mask, device)
+        packed_encoder_input = torch.nn.utils.rnn.pack_padded_sequence(
+            encoder_input, seq_len,
+            batch_first=True, enforce_sorted=False)
 
         # hidden shape == NUM_LAYERS * NUM_DIRECTIONS x BATCH x HIDDEN_SIZE
         packed_out, (hidden, cell) = self._encoderbiLSTM(packed_encoder_input)
         last_state_forward = hidden[self._encoder_num_layers-1, :, :]
         last_state_backward = hidden[2*self._encoder_num_layers-1, :, :]
         # now concatenate the last of forward and the last of backward
-        enc_sentence = torch.cat((last_state_forward, last_state_backward), dim=1)
-        
+        enc_sentence = torch.cat(
+            (last_state_forward, last_state_backward), dim=1)
+
         # FFNN
         eos_out = self._eos_ffnn(bert_cls_out)
         intent_out = self._intent_ffnn(enc_sentence)
         action_out = self._action_ffnn(enc_sentence)
-        
+
         # Residual connection
-        eos_out += bert_cls_out
-        intent_out += enc_sentence
-        action_out += enc_sentence    
-        
-        ### LOGITS and predictions
+        eos_out = eos_out + bert_cls_out
+        intent_out = intent_out + enc_sentence
+        action_out = action_out + enc_sentence
+
+        # LOGITS and predictions
         logits_eos = self._eos_classifier(eos_out)
         logits_intent = self._intent_classifier(intent_out)
         logits_action = self._action_classifier(action_out)
-        
+
         prediction_eos = self._softmax(logits_eos, dim=1)
         prediction_intent = self._softmax(logits_intent, dim=1)
         prediction_action = self._softmax(logits_action, dim=1)
-        
-        return {'logit': logits_eos, 'prediction': prediction_eos},\
-                {'logit': logits_intent, 'prediction': prediction_intent},\
-                {'logit': logits_action, 'prediction': prediction_action}
-        
 
+        return {'logit': logits_eos, 'prediction': prediction_eos}, \
+            {'logit': logits_intent, 'prediction': prediction_intent}, \
+            {'logit': logits_action, 'prediction': prediction_action}
 
     def __get_first_utterance(self, bert_hiddens, attention_mask, device):
-        
         res = []
         seq_len = []
 
         # handle the first utterance of the dialogue independently
-        last_token_idx = len(attention_mask[0][attention_mask[0]!=0])
-        
-        res.append(bert_hiddens[0][:last_token_idx-1]) #remove the [SEP]
+        last_token_idx = len(attention_mask[0][attention_mask[0] != 0])
+
+        res.append(bert_hiddens[0][:last_token_idx-1])  # remove the [SEP]
         seq_len.append(len(res[0]))
-        
+
         return torch.stack(res), torch.tensor(seq_len)
-
-
 
     def __compute_average(self, bert_hiddens, attention_mask, device='cpu'):
 
         count = 0
         res = torch.zeros(MTSIBert._BERT_H_DIM).to(device)
         for bert_h, att_value in zip(bert_hiddens, attention_mask):
-            # if attention value is one then put this in 
+            # if attention value is one then put this in
             if att_value == 1:
                 res = torch.add(res, bert_h)
                 count += 1
             else:
-                break #pass
+                break  # pass
 
         return torch.div(res, count)
-                
-
 
 
 class SlidingWindow():
@@ -219,14 +223,13 @@ class SlidingWindow():
     """
 
     def __init__(self, window_max_size):
-        
+
         # init dialog status
         self._curr_window = deque()
         self._curr_dialog_id = ''
         self._window_max_size = window_max_size
         # init the turn before the firts one
         self._curr_turn = 0
-
 
     def pack_windows(self, input, turns, device='cpu'):
         """
@@ -246,9 +249,8 @@ class SlidingWindow():
                 # is dialogue padding and we discard it
                 pass
 
-        self.sliding_window_flush() #clear internal buffer
+        self.sliding_window_flush()  # clear internal buffer
         return window_list
-
 
     def add_to_dialog_window(self, utterance):
 
@@ -257,12 +259,11 @@ class SlidingWindow():
             self._curr_window.append(utterance)
         else:
             if len(self._curr_window) == self._window_max_size:
-                #remove first element
+                # remove first element
                 self._curr_window.popleft()
                 self._curr_window.append(utterance)
 
         return list(self._curr_window)
-
 
     def sliding_window_flush(self):
         """
