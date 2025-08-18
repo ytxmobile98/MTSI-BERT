@@ -6,7 +6,7 @@ import sys
 
 import numpy as np
 import torch
-from pytorch_transformers import BertTokenizer
+from transformers import BertTokenizer
 from torch.utils.data import DataLoader
 from torch import nn
 
