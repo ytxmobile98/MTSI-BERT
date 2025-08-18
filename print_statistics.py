@@ -42,8 +42,6 @@ def statistics(remove_subsequent_actor=False):
     """
     To retrieve the max sentence lenth in order to apply the rigth amount of padding
     """
-    tokenizer = BertTokenizer.from_pretrained(
-        'bert-base-cased', do_lower_case=False)
 
     print('\n\t\t\t### TRAINING ###')
     training_set = KvretDataset(KvretConfig._KVRET_TRAIN_PATH)
