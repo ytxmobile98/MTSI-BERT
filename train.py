@@ -9,6 +9,7 @@ import torch
 from transformers import BertTokenizer
 from torch import nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
                    MTSIKvretConfig, TwoSepTensorBuilder)
@@ -156,15 +157,19 @@ def train(load_checkpoint_path=None):
 
     tensor_builder = TwoSepTensorBuilder()
 
-    for epoch in range(_N_EPOCHS):
-        logging.info(f"Epoch: {epoch+1} / {_N_EPOCHS}")
+    for epoch in tqdm(range(_N_EPOCHS), desc="Epoch"):
 
         model.train()
         t_eos_losses = []
         t_intent_losses = []
         t_action_losses = []
 
-        for curr_step, (local_batch, local_turns, local_intents, local_actions, dialogue_ids) in enumerate(training_generator):
+        for curr_step, (
+            local_batch, local_turns, local_intents,
+            local_actions, dialogue_ids) in tqdm(
+                enumerate(training_generator),
+                total=len(training_generator),
+                desc='Batch step'):
 
             # 0 = intra dialogue ; 1 = eos
             eos_label, eos_idx = get_eos(local_turns, MTSIKvretConfig._WINDOW_SIZE,
