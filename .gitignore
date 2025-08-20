@@ -103,7 +103,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-#Visual Studio code
+# Visual Studio Code
 .vscode/
 
 # Checkpoints
