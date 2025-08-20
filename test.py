@@ -1,20 +1,15 @@
-import datetime
-import logging
-import os
-import pdb
-import sys
-
-import numpy as np
 import torch
 from transformers import BertTokenizer
 
-from sklearn.metrics import classification_report, recall_score, f1_score, precision_score
+from sklearn.metrics import recall_score, f1_score, precision_score
 
 from torch import nn
 from torch.utils.data import DataLoader
 
 from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
                    MTSIKvretConfig, TwoSepTensorBuilder)
+
+CHECKPOINT_PATH = './savings/2025-08-18T17:04:59.400671/state_dict.pt'
 
 
 def get_eos(turns, win_size, windows_per_dialogue):
@@ -171,4 +166,4 @@ def test(load_checkpoint_path):
 
 
 if __name__ == '__main__':
-    test(load_checkpoint_path='dict_archive/MINI_BATCH16/100epochs/deep/state_dict.pt')
+    test(load_checkpoint_path=CHECKPOINT_PATH)

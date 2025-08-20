@@ -106,5 +106,7 @@ venv.bak/
 #Visual Studio code
 .vscode/
 
-#Checkpoints
+# Checkpoints
 savings/
+# Plots
+plots/
