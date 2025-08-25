@@ -110,3 +110,6 @@ venv.bak/
 savings/
 # Plots
 plots/
+
+# spaCy saving
+spaCy_savings/
