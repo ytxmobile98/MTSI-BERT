@@ -219,6 +219,7 @@ dependencies = [
     { name = "kiwisolver" },
     { name = "matplotlib" },
     { name = "murmurhash" },
+    { name = "nltk" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "plac" },
@@ -266,6 +267,7 @@ requires-dist = [
     { name = "kiwisolver", specifier = "==1.1.0" },
     { name = "matplotlib", specifier = "==3.1.3" },
     { name = "murmurhash", specifier = "==1.0.2" },
+    { name = "nltk", specifier = ">=3.6.3" },
     { name = "numpy", specifier = "==1.18.1" },
     { name = "pandas", specifier = "==1.0.1" },
     { name = "plac", specifier = "==1.1.3" },
@@ -302,6 +304,21 @@ wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/5f/4a/6c93498dd40831a775d3dec737a2b2998f1fd3b8b99b6f7d3c6341b76b9f/murmurhash-1.0.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:cc97ea766ac545074bab0e5af3dbc48e0d05ba230ae5a404e284d39abe4b3baf" },
     { url = "https://mirrors.aliyun.com/pypi/packages/20/2d/798d60fdfdf4fcc16b9c73d9450183fb61fdb89e8d475fa94d07edfcd3b7/murmurhash-1.0.2-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:8b045a79e8b621b4b35b29f29e33e9e0964f3a276f7da4d5736142f322ad4842" },
     { url = "https://mirrors.aliyun.com/pypi/packages/5b/73/129c1aed56c88a446c70e4eda186fe014bfb8330478e5e257cc923bd3e15/murmurhash-1.0.2-cp38-cp38-win_amd64.whl", hash = "sha256:f468e4868f78c3ac202a66abfe2866414bca4ae7666a21ef0938c423de0f7d50" },
+]
+
+[[package]]
+name = "nltk"
+version = "3.6.3"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "joblib" },
+    { name = "regex" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/06/27/c707d819bcb33796d12bac4bd61e40dd977f833bfbd161bd66c7e3f1c9c6/nltk-3.6.3.zip", hash = "sha256:5db64a976e88cef0db9200c7f25aeceba8a86efbe09cc824f01a6d3163f7e937" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/5e/a0/04763ddc4bf3bac6f3bd38934c36a0f3ac30e48c39a51b3ec5649ed17374/nltk-3.6.3-py3-none-any.whl", hash = "sha256:665225d585367f64a73ff1cb436964b425304dc772406653412e19dfe0157688" },
 ]
 
 [[package]]
