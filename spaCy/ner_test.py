@@ -1,18 +1,19 @@
-import pdb
+import os
 import sys
-sys.path.insert(1, 'model/')
 import spacy
 from ner_kvret import NERKvretDataset
-from MTSIBertConfig import KvretConfig
 from nltk.translate.bleu_score import sentence_bleu
 import numpy as np
 
-_SPACY_MODEL_SAVING_PATH = 'spaCy/spaCy_savings/'
+sys.path.insert(1, 'model/')
+from MTSIBertConfig import KvretConfig
+
+_SPACY_MODEL_SAVING_PATH = 'spaCy_savings/ner'
 
 
 def spacy_test(spacy_model, data):
 
-    doc = nlp('Where is the nearest gas station?')
+    doc = spacy_model('Where is the nearest gas station?')
 
     missing_entities = 0
     bleu_scores = []
@@ -22,7 +23,7 @@ def spacy_test(spacy_model, data):
         ents_l = t_sample[1]['entities']
         ents_l.sort(key=lambda tup: tup[0])  # sorts in place the entities list
 
-        doc = nlp(utt) # make prediction
+        doc = spacy_model(utt)  # make prediction
 
         #if len(doc.ents) > len(ents_l):
             #pdb.set_trace()
@@ -40,16 +41,12 @@ def spacy_test(spacy_model, data):
     print('missing: '+str(missing_entities))
 
 
-
-
-
-
 if __name__ == '__main__':
-    
     test_set = NERKvretDataset(KvretConfig._KVRET_TEST_PATH)
     stest_set = test_set.build_spacy_dataset()
+    # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
+    spacy_model_path = os.path.join(
+        _SPACY_MODEL_SAVING_PATH, '2025-08-26T09:32:52.249503')
+    model = spacy.load(spacy_model_path)
 
-    nlp = spacy.load(_SPACY_MODEL_SAVING_PATH+'spacy_2019-08-25T22:23:47.579104')
-
-    spacy_test(nlp, stest_set)
-
+    spacy_test(model, stest_set)
