@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
                    MTSIKvretConfig, TwoSepTensorBuilder)
 
-CHECKPOINT_PATH = './savings/2025-08-18T17:04:59.400671/state_dict.pt'
+CHECKPOINT_PATH = './savings/2025-08-26T14:16:14.405155/state_dict.pt'
 
 
 def get_eos(turns, win_size, windows_per_dialogue):
