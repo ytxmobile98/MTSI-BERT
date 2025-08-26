@@ -2,7 +2,7 @@ import os
 import sys
 import spacy
 from ner_kvret import NERKvretDataset
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import numpy as np
 
 sys.path.insert(1, 'model/')
@@ -13,10 +13,12 @@ _SPACY_MODEL_SAVING_PATH = 'spaCy_savings/ner'
 
 def spacy_test(spacy_model, data):
 
-    doc = spacy_model('Where is the nearest gas station?')
+    doc = spacy_model('')
 
     missing_entities = 0
     bleu_scores = []
+
+    smoothing_function = SmoothingFunction().method1
 
     for t_sample in data:
         utt = t_sample[0]
@@ -24,17 +26,17 @@ def spacy_test(spacy_model, data):
         ents_l.sort(key=lambda tup: tup[0])  # sorts in place the entities list
 
         doc = spacy_model(utt)  # make prediction
-
-        #if len(doc.ents) > len(ents_l):
-            #pdb.set_trace()
-        #assert len(ents_l) >= len(doc.ents), 'PREDICTED MORE ENTITIES THAN REQUESTED'
         if len(doc.ents) > len(ents_l):
             missing_entities += (len(doc.ents) - len(ents_l))
 
         for pred, truth in zip(doc.ents, ents_l):
             start_idx = truth[0]
             end_idx = truth[1]
-            curr_bleu = sentence_bleu(references=utt[start_idx:end_idx], hypothesis=pred)
+            curr_bleu = sentence_bleu(
+                references=utt[start_idx:end_idx],
+                hypothesis=str(pred),
+                weights=(1.0, 0.0, 0.0, 0.0),
+                smoothing_function=smoothing_function)
             bleu_scores.append(curr_bleu)
 
     print('BLEU: '+str(np.mean(bleu_scores)))
