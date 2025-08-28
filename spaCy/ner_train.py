@@ -10,7 +10,6 @@ from ner_kvret import NERKvretDataset
 sys.path.insert(1, 'model/')
 from MTSIBertConfig import KvretConfig
 
-
 _N_EPOCHS = 120
 _SPACY_MODEL_SAVING_PATH = 'spaCy_savings/'
 _BATCH_SIZE = 32
@@ -22,12 +21,6 @@ def spacy_train(data):
     # nlp.create_pipe works for built-ins that are registered with spaCy
     if 'ner' not in nlp.pipe_names:
         nlp.add_pipe('ner')
-    ner = nlp.get_pipe('ner')
-
-    # add labels
-    for _, annotations in data:
-        for ent in annotations.get('entities'):
-            ner.add_label(ent[2])
 
     # get names of other pipes to disable them during training
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != 'ner']
@@ -58,7 +51,7 @@ def spacy_train(data):
                 curr_batch_text = []
                 curr_batch_label = []
 
-            log_str = '### EPOCH '+str(epoch+1)+'/'+str(_N_EPOCHS)+':: TRAIN LOSS = '+str(losses)
+            log_str = f'### EPOCH {epoch+1}/{_N_EPOCHS}:: TRAIN LOSS = {losses}'
             print(log_str)
 
     return nlp
@@ -84,4 +77,5 @@ if __name__ == '__main__':
 
     end = time.time()
     h_count = (end-start)/60/60
-    print('training time: '+str(h_count)+'h')
+    print(f'training time: {h_count}h')
+    print(f'Model saved to: "{os.path.realpath(save_dir)}"')
