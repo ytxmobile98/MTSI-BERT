@@ -20,7 +20,14 @@ def spacy_train(data):
     # create the built-in pipeline components and add them to the pipeline
     # nlp.create_pipe works for built-ins that are registered with spaCy
     if 'ner' not in nlp.pipe_names:
-        nlp.add_pipe('ner')
+        ner = nlp.add_pipe('ner')
+    else:
+        ner = nlp.get_pipe('ner')
+
+    # add labels
+    for _, annotations in data:
+        for ent in annotations.get('entities'):
+            ner.add_label(ent[2])
 
     # get names of other pipes to disable them during training
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != 'ner']
