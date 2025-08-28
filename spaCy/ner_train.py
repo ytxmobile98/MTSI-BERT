@@ -27,15 +27,23 @@ def spacy_train(data):
     with nlp.disable_pipes(*other_pipes):  # only train NER
         optimizer = nlp.begin_training()
 
+        def is_last_idx_of_batch(idx):
+            return idx % _BATCH_SIZE == (_BATCH_SIZE - 1) \
+                or idx == len(data) - 1
+
         for epoch in range(_N_EPOCHS):
             random.shuffle(straining_set)
             losses = {}
             curr_batch_text = []
             curr_batch_label = []
+
             for idx, (text, annotations) in enumerate(data):
-                if idx % _BATCH_SIZE == 0 or idx == len(data) - 1:
-                    curr_batch_text.append(text)
-                    curr_batch_label.append(annotations)
+                curr_batch_text.append(text)
+                curr_batch_label.append(annotations)
+
+                if not is_last_idx_of_batch(idx):
+                    continue
+
                 examples = [
                     Example.from_dict(
                         nlp.make_doc(text), annotations)
