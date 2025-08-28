@@ -48,7 +48,7 @@ if __name__ == '__main__':
     stest_set = test_set.build_spacy_dataset()
     # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
     spacy_model_path = os.path.join(
-        _SPACY_MODEL_SAVING_PATH, '2025-08-26T09:32:52.249503')
+        _SPACY_MODEL_SAVING_PATH, '2025-08-26T16:55:41.477227')
     model = spacy.load(spacy_model_path)
 
     spacy_test(model, stest_set)
