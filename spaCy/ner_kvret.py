@@ -50,7 +50,7 @@ class NERKvretDataset(Dataset):
         spacy_data = []
 
         for sample in self._dataset:
-            utt: str = sample[0].lower()
+            utt: str = sample[0].lower().strip()
             slots = sample[1]
 
             entities_l = []
