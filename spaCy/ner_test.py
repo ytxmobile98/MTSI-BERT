@@ -1,6 +1,8 @@
 import os
 import sys
 import spacy
+from spacy.language import Language
+from spacy.training import Example
 from ner_kvret import NERKvretDataset
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import numpy as np
@@ -11,7 +13,7 @@ from MTSIBertConfig import KvretConfig
 _SPACY_MODEL_SAVING_PATH = 'spaCy_savings/ner'
 
 
-def spacy_test(spacy_model, data):
+def spacy_test(spacy_model: Language, data):
 
     doc = spacy_model('')
 
@@ -19,6 +21,8 @@ def spacy_test(spacy_model, data):
     bleu_scores = []
 
     smoothing_function = SmoothingFunction().method1
+
+    examples: list[Example] = []
 
     for t_sample in data:
         utt = t_sample[0]
@@ -39,6 +43,10 @@ def spacy_test(spacy_model, data):
                 smoothing_function=smoothing_function)
             bleu_scores.append(curr_bleu)
 
+        examples.append(Example.from_dict(doc, t_sample[1]))
+
+    eval_results = spacy_model.evaluate(examples, per_component=True)
+    print("Evaluation results:", eval_results)
     print('BLEU: '+str(np.mean(bleu_scores)))
     print('missing: '+str(missing_entities))
 
@@ -48,7 +56,7 @@ if __name__ == '__main__':
     stest_set = test_set.build_spacy_dataset()
     # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
     spacy_model_path = os.path.join(
-        _SPACY_MODEL_SAVING_PATH, '2025-08-28T10:15:53.128947')
+        _SPACY_MODEL_SAVING_PATH, '2025-08-29T16:07:06.013416')
     model = spacy.load(spacy_model_path)
 
     spacy_test(model, stest_set)
