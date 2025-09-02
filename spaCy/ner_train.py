@@ -1,18 +1,16 @@
 import os
 import datetime
-import sys
 import time
 import random
 import spacy
 from spacy.training import Example
 from ner_kvret import NERKvretDataset, Entities
-
-sys.path.insert(1, 'model/')
-from MTSIBertConfig import KvretConfig
+from MTSIBertConfig import KvretConfig, PROJECT_ROOT_DIR
 
 _N_EPOCHS = 120
-_SPACY_MODEL_SAVING_PATH = 'spaCy_savings/'
 _BATCH_SIZE = 32
+
+_SPACY_MODEL_SAVING_PATH = PROJECT_ROOT_DIR / 'spaCy_savings'
 
 
 def spacy_train(data: list[tuple[str, dict[str, Entities]]]) \
@@ -62,8 +60,6 @@ def spacy_train(data: list[tuple[str, dict[str, Entities]]]) \
 if __name__ == '__main__':
     start = time.time()
     curr_date = datetime.datetime.now().isoformat()
-    # creates the directory for the checkpoints
-    os.makedirs(os.path.dirname(_SPACY_MODEL_SAVING_PATH), exist_ok=True)
 
     training_set = NERKvretDataset(KvretConfig._KVRET_TRAIN_PATH)
     straining_set = training_set.build_spacy_dataset()
@@ -73,11 +69,11 @@ if __name__ == '__main__':
 
     # train on both training and validation set
     spacy_model = spacy_train(straining_set+svalidation_set)
-    save_dir = os.path.join(_SPACY_MODEL_SAVING_PATH, 'ner')
+    save_dir = _SPACY_MODEL_SAVING_PATH / 'ner' / curr_date
     os.makedirs(save_dir, exist_ok=True)
-    spacy_model.to_disk(os.path.join(save_dir, curr_date))
+    spacy_model.to_disk(save_dir)
 
     end = time.time()
     h_count = (end-start)/60/60
     print(f'training time: {h_count}h')
-    print(f'Model saved to: "{os.path.realpath(save_dir)}"')
+    print(f'Model saved to: "{save_dir.absolute()}"')
