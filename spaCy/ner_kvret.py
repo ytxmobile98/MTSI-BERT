@@ -68,7 +68,7 @@ class NERKvretDataset(Dataset):
                 entity_tuple = (start_idx, end_idx, str(slot_type))
                 entities_l.append(entity_tuple)
 
-            entities_l = find_max_non_overlap(entities_l)
+            entities_l = self.find_max_non_overlap(entities_l)
 
             # do not add if no entities were found
             if len(entities_l) > 0:
@@ -77,22 +77,22 @@ class NERKvretDataset(Dataset):
 
         return spacy_data
 
+    @staticmethod
+    def find_max_non_overlap(entities: Entities) -> Entities:
 
-def find_max_non_overlap(entities: Entities) -> Entities:
+        entities = sorted(entities, key=lambda x: (x[0], x[1]))
 
-    entities = sorted(entities, key=lambda x: (x[0], x[1]))
+        selected: Entities = []
 
-    selected: Entities = []
+        if not entities:
+            return selected
 
-    if not entities:
+        last_selected = entities[0]
+        selected.append(last_selected)
+
+        for _, item in enumerate(entities[1:], start=1):
+            if item[0] >= last_selected[1]:
+                selected.append(item)
+                last_selected = item
+
         return selected
-
-    last_selected = entities[0]
-    selected.append(last_selected)
-
-    for _, item in enumerate(entities[1:], start=1):
-        if item[0] >= last_selected[1]:
-            selected.append(item)
-            last_selected = item
-
-    return selected
