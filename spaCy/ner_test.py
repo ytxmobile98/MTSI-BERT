@@ -1,4 +1,5 @@
-import os
+import argparse
+import pathlib
 import sys
 import spacy
 from spacy.language import Language
@@ -10,7 +11,12 @@ import numpy as np
 sys.path.insert(1, 'model/')
 from MTSIBertConfig import KvretConfig
 
-_SPACY_MODEL_SAVING_PATH = 'spaCy_savings/ner'
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="spaCy NER model testing")
+    parser.add_argument("--model-path", type=pathlib.Path, required=True,
+                        help="Path to the trained spaCy model")
+    return parser.parse_args()
 
 
 def spacy_test(spacy_model: Language, data):
@@ -52,11 +58,12 @@ def spacy_test(spacy_model: Language, data):
 
 
 if __name__ == '__main__':
+    args = parse_args()
+
     test_set = NERKvretDataset(KvretConfig._KVRET_TEST_PATH)
     stest_set = test_set.build_spacy_dataset()
     # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
-    spacy_model_path = os.path.join(
-        _SPACY_MODEL_SAVING_PATH, '2025-08-29T16:07:06.013416')
+    spacy_model_path = args.model_path
     model = spacy.load(spacy_model_path)
 
     spacy_test(model, stest_set)
