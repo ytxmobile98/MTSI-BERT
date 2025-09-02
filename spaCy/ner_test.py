@@ -1,14 +1,11 @@
 import argparse
 import pathlib
-import sys
 import spacy
 from spacy.language import Language
 from spacy.training import Example
 from ner_kvret import NERKvretDataset
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import numpy as np
-
-sys.path.insert(1, 'model/')
 from MTSIBertConfig import KvretConfig
 
 
@@ -62,7 +59,6 @@ if __name__ == '__main__':
 
     test_set = NERKvretDataset(KvretConfig._KVRET_TEST_PATH)
     stest_set = test_set.build_spacy_dataset()
-    # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
     spacy_model_dir = args.model_dir
     model = spacy.load(spacy_model_dir)
 
