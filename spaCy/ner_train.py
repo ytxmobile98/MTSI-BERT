@@ -73,11 +73,11 @@ if __name__ == '__main__':
 
     # train on both training and validation set
     spacy_model = spacy_train(straining_set+svalidation_set)
-    save_dir = os.path.join(_SPACY_MODEL_SAVING_PATH, 'ner')
+    save_dir = os.path.join(_SPACY_MODEL_SAVING_PATH, 'ner', curr_date)
     os.makedirs(save_dir, exist_ok=True)
-    spacy_model.to_disk(os.path.join(save_dir, curr_date))
+    spacy_model.to_disk(save_dir)
 
     end = time.time()
     h_count = (end-start)/60/60
     print(f'training time: {h_count}h')
-    print(f'Model saved to: "{os.path.realpath(save_dir)}"')
+    print(f'Model saved to: "{os.path.abspath(save_dir)}"')
