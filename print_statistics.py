@@ -5,7 +5,7 @@ from model import KvretConfig, KvretDataset
 
 def print_statistics_per_set(curr_set):
     tokenizer = BertTokenizer.from_pretrained(
-        '/data/models/bert-base-cased', do_lower_case=False)
+        'bert-base-cased', do_lower_case=False)
 
     tok, sentences, id = curr_set.get_max_tokens_per_dialogue(tokenizer)
     print('\n--- max tokens per dialogue ---')

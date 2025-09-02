@@ -114,7 +114,7 @@ def test(load_checkpoint_path):
 
     # Bert adapter for dataset
     tokenizer = BertTokenizer.from_pretrained(
-        '/data/models/bert-base-cased', do_lower_case=False)
+        'bert-base-cased', do_lower_case=False)
     # pass max_len + 1 (to pad of 1 also the longest sentence, a sort of EOS) + 1 (random last sentence from other)
 
     # Model preparation
@@ -122,7 +122,7 @@ def test(load_checkpoint_path):
                      num_layers_eos=MTSIKvretConfig._EOS_LAYERS_NUM,
                      n_intents=MTSIKvretConfig._N_INTENTS,
                      batch_size=MTSIKvretConfig._BATCH_SIZE,
-                     pretrained='/data/models/bert-base-cased',
+                     pretrained='bert-base-cased',
                      seed=MTSIKvretConfig._SEED,
                      window_size=MTSIKvretConfig._WINDOW_SIZE)
     # work on multiple GPUs when availables

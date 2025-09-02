@@ -64,7 +64,7 @@ def train(load_checkpoint_path=None):
 
     # Bert adapter for dataset
     tokenizer = BertTokenizer.from_pretrained(
-        '/data/models/bert-base-cased', do_lower_case=False)
+        'bert-base-cased', do_lower_case=False)
     # pass max_len + 1 (to pad of 1 also the longest sentence, a sort of EOS) + 1 (random last sentence from other)
     badapter_train = MTSIAdapterDataset(training_set, tokenizer,
                                         KvretConfig._KVRET_MAX_BERT_TOKENS_PER_TRAIN_SENTENCE + 1,
@@ -87,7 +87,7 @@ def train(load_checkpoint_path=None):
                      num_layers_eos=MTSIKvretConfig._EOS_LAYERS_NUM,
                      n_intents=MTSIKvretConfig._N_INTENTS,
                      batch_size=MTSIKvretConfig._BATCH_SIZE,
-                     pretrained='/data/models/bert-base-cased',
+                     pretrained='bert-base-cased',
                      seed=MTSIKvretConfig._SEED,
                      window_size=MTSIKvretConfig._WINDOW_SIZE)
 
@@ -137,11 +137,11 @@ def train(load_checkpoint_path=None):
     # creates the directory for the checkpoints
     os.makedirs(os.path.dirname(MTSIKvretConfig._SAVING_PATH), exist_ok=True)
     curr_date = datetime.datetime.now().isoformat()
-    os.makedirs(os.path.dirname(
-        MTSIKvretConfig._SAVING_PATH+curr_date+'/'), exist_ok=True)
+    os.makedirs((MTSIKvretConfig._SAVING_PATH /
+                 curr_date).parent, exist_ok=True)
     # creates the directory for the plots figure
-    os.makedirs(os.path.dirname(
-        MTSIKvretConfig._PLOTS_SAVING_PATH), exist_ok=True)
+    os.makedirs(
+        MTSIKvretConfig._PLOTS_SAVING_PATH.parent, exist_ok=True)
 
     # initializes the losses lists
     best_loss = 100
@@ -273,9 +273,11 @@ def train(load_checkpoint_path=None):
         if val_mean_loss < best_loss:
             # saves the model weights
             best_loss = val_mean_loss
-            # save using model.cpu to allow the further loading also on cpu or single-GPU
-            torch.save(model.cpu().state_dict(),
-                       MTSIKvretConfig._SAVING_PATH+curr_date+'/state_dict.pt')
+            # save using model.cpu to allow the further loading
+            # also on cpu or single-GPU
+            save_dir = MTSIKvretConfig._SAVING_PATH / curr_date
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(model.cpu().state_dict(), save_dir / 'state_dict.pt')
         model.to(device)
 
         bert_curr_lr = optimizer.param_groups[0]['lr']
@@ -297,6 +299,8 @@ def train(load_checkpoint_path=None):
 
     epoch_list = np.arange(1, _N_EPOCHS+1)
 
+    os.makedirs(MTSIKvretConfig._PLOTS_SAVING_PATH, exist_ok=True)
+
     # plot train vs validation
     plt.plot(epoch_list, train_global_losses, color='blue', label='train loss')
     plt.plot(epoch_list, val_global_losses,
@@ -306,7 +310,7 @@ def train(load_checkpoint_path=None):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend(loc='best')
-    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH+'train_vs_val.png')
+    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH / 'train_vs_val.png')
 
     # clean figure
     plt.clf()
@@ -322,7 +326,7 @@ def train(load_checkpoint_path=None):
     plt.xlabel('Epochs')
     plt.ylabel('Validation Loss')
     plt.legend(loc='best')
-    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH+'validation_losses.png')
+    plt.savefig(MTSIKvretConfig._PLOTS_SAVING_PATH / 'validation_losses.png')
 
 
 if __name__ == '__main__':
