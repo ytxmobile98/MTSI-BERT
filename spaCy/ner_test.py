@@ -14,8 +14,8 @@ from MTSIBertConfig import KvretConfig
 
 def parse_args():
     parser = argparse.ArgumentParser(description="spaCy NER model testing")
-    parser.add_argument("--model-path", type=pathlib.Path, required=True,
-                        help="Path to the trained spaCy model")
+    parser.add_argument("--model-dir", type=pathlib.Path, required=True,
+                        help="Directory of the trained spaCy model")
     return parser.parse_args()
 
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     test_set = NERKvretDataset(KvretConfig._KVRET_TEST_PATH)
     stest_set = test_set.build_spacy_dataset()
     # spacy_model_path = 'spaCy/spaCy_savings/spacy_2019-08-25T22:23:47.579104'
-    spacy_model_path = args.model_path
-    model = spacy.load(spacy_model_path)
+    spacy_model_dir = args.model_dir
+    model = spacy.load(spacy_model_dir)
 
     spacy_test(model, stest_set)
