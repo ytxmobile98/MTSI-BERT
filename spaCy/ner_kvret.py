@@ -45,7 +45,8 @@ class NERKvretDataset(Dataset):
     def get_slots_type_num(self):
         return len(self._slots_t)
 
-    def build_spacy_dataset(self):
+    def build_spacy_dataset(self) \
+            -> list[tuple[str, dict[str, Entities]]]:
         """
         Return a dataset compatible with spacy NER
         """

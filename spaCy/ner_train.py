@@ -5,7 +5,7 @@ import time
 import random
 import spacy
 from spacy.training import Example
-from ner_kvret import NERKvretDataset
+from ner_kvret import NERKvretDataset, Entities
 
 sys.path.insert(1, 'model/')
 from MTSIBertConfig import KvretConfig
@@ -15,7 +15,8 @@ _SPACY_MODEL_SAVING_PATH = 'spaCy_savings/'
 _BATCH_SIZE = 32
 
 
-def spacy_train(data):
+def spacy_train(data: list[tuple[str, dict[str, Entities]]]) \
+        -> spacy.language.Language:
     nlp = spacy.blank('en')  # create blank Language class
     # create the built-in pipeline components and add them to the pipeline
     # nlp.create_pipe works for built-ins that are registered with spaCy
@@ -32,39 +33,25 @@ def spacy_train(data):
     # get names of other pipes to disable them during training
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != 'ner']
     with nlp.disable_pipes(*other_pipes):  # only train NER
-        optimizer = nlp.begin_training()
-
-        def is_last_idx_of_batch(idx):
-            return idx % _BATCH_SIZE == (_BATCH_SIZE - 1) \
-                or idx == len(data) - 1
+        optimizer = nlp.initialize()
 
         for epoch in range(_N_EPOCHS):
             random.shuffle(straining_set)
             losses = {}
-            curr_batch_text = []
-            curr_batch_label = []
 
-            for idx, (text, annotations) in enumerate(data):
-                curr_batch_text.append(text)
-                curr_batch_label.append(annotations)
-
-                if not is_last_idx_of_batch(idx):
-                    continue
+            for idx in range(0, len(data), _BATCH_SIZE):
+                curr_batch_items = data[idx:idx+_BATCH_SIZE]
 
                 examples = [
                     Example.from_dict(
                         nlp.make_doc(text), annotations)
-                    for text, annotations in zip(
-                        curr_batch_text, curr_batch_label)
+                    for text, annotations in curr_batch_items
                 ]
                 nlp.update(
                     examples=examples,
                     drop=0.2,  # dropout
                     sgd=optimizer,  # callable to update weights
                     losses=losses)
-
-                curr_batch_text = []
-                curr_batch_label = []
 
             log_str = f'### EPOCH {epoch+1}/{_N_EPOCHS}:: TRAIN LOSS = {losses}'
             print(log_str)
