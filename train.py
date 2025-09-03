@@ -282,15 +282,15 @@ def train(load_checkpoint_path=None):
 
         bert_curr_lr = optimizer.param_groups[0]['lr']
         nn_curr_lr = optimizer.param_groups[1]['lr']
-        log_str = '### EPOCH '+str(epoch+1)+'/'+str(_N_EPOCHS)+' (bert_lr='+str(bert_curr_lr)+', nn_lr='+str(nn_curr_lr)+'):: TRAIN LOSS = '+str(train_mean_loss) +\
-            '[eos = '+str(round(np.mean(t_eos_losses), 4))+'], ' +\
-            '[action = '+str(round(np.mean(t_action_losses), 4))+'], ' +\
-            '[intent = '+str(round(np.mean(t_intent_losses), 4))+'], ' +\
-            '\n\t\t\t || VAL LOSS = '+str(val_mean_loss) +\
-            '[eos = '+str(round(np.mean(v_eos_losses), 4))+'], ' +\
-            '[action = '+str(round(np.mean(v_action_losses), 4))+'], ' +\
-            '[intent = '+str(
-            round(np.mean(v_intent_losses), 4))+']'
+        log_str = f'### EPOCH {epoch+1}/{_N_EPOCHS} (bert_lr={bert_curr_lr},' \
+            f' nn_lr={nn_curr_lr}):: TRAIN LOSS = {train_mean_loss} ' \
+            f' [eos = {round(np.mean(t_eos_losses), 4)}],' \
+            f' [action = {round(np.mean(t_action_losses), 4)}],' \
+            f' [intent = {round(np.mean(t_intent_losses), 4)}],' \
+            f'\n\t\t\t || VAL LOSS = {val_mean_loss}' \
+            f' [eos = {round(np.mean(v_eos_losses), 4)}],' \
+            f' [action = {round(np.mean(v_action_losses), 4)}],' \
+            f' [intent = {round(np.mean(v_intent_losses), 4)}]'
         print(log_str)
         # step of scheduler to reduce the lr each milestone
         scheduler.step()
