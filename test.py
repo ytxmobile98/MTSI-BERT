@@ -1,3 +1,4 @@
+import argparse
 import torch
 from transformers import BertTokenizer
 
@@ -9,7 +10,19 @@ from torch.utils.data import DataLoader
 from model import (KvretConfig, KvretDataset, MTSIAdapterDataset, MTSIBert,
                    MTSIKvretConfig, TwoSepTensorBuilder)
 
-CHECKPOINT_PATH = './savings/2025-08-26T14:16:14.405155/state_dict.pt'
+"""
+Test the model.
+
+Note: If the model is trained with GPU enabled, you must also use GPU for testing.
+"""
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='MTSI-BERT test utility')
+    parser.add_argument(
+        "--checkpoint-path", type=str, required=True,
+        help="Path to the model checkpoint (state_dict.pt file)")
+    return parser.parse_args()
 
 
 def get_eos(turns, win_size, windows_per_dialogue):
@@ -166,4 +179,5 @@ def test(load_checkpoint_path):
 
 
 if __name__ == '__main__':
-    test(load_checkpoint_path=CHECKPOINT_PATH)
+    args = parse_args()
+    test(load_checkpoint_path=args.checkpoint_path)
