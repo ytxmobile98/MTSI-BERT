@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from transformers import BertModel, BertTokenizer
 from torch import nn
 
-from .MTSIBertInputBuilder import MTSITensorBuilder
+from .MTSIBertInputBuilder import TwoSepTensorBuilder
 
 
 class MTSIBert(nn.Module):
@@ -98,7 +98,7 @@ class MTSIBert(nn.Module):
                                  num_windows, self._eos_hidden_dim).to(device)
         return (encoder_hidden, eos_hidden)
 
-    def forward(self, input, turns, dialogue_ids, tensor_builder: MTSITensorBuilder,
+    def forward(self, input, turns, dialogue_ids, tensor_builder: TwoSepTensorBuilder,
                 device='cpu'):
         """
         It works only with batch size B=1

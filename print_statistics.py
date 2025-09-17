@@ -3,7 +3,7 @@ from transformers import BertTokenizer
 from model import KvretConfig, KvretDataset
 
 
-def print_statistics_per_set(curr_set):
+def print_statistics_per_set(curr_set: KvretDataset):
     tokenizer = BertTokenizer.from_pretrained(
         'bert-base-cased', do_lower_case=False)
 
