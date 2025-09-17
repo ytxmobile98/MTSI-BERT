@@ -173,7 +173,7 @@ class KvretDataset(Dataset):
                 if dialogue['kb_action'] == 'insert':
                     insert_count += 1
                 else:
-                    raise '[EXCEPTION] -- Neither fetch nor insert'
+                    raise ValueError('[EXCEPTION] -- Neither fetch nor insert')
 
         assert fetch_count + \
             insert_count == len(
